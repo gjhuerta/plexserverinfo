@@ -2,3 +2,4 @@ plexapi
 python-dotenv
 pandas
 openpyxl
+requests
