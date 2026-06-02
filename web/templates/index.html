@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}taboplex · inicio{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <h1>taboplex</h1>
+        <p>Tu cineteca personal, ordenada, observable y bajo control.</p>
+        <div class="hero-meta">
+            Servidor local · Mac Pro 2013 · TrashCan Edition
+        </div>
+    </div>
+</section>
+
+<section class="cards">
+    <article class="card">
+        <div class="card-label">Películas</div>
+        <div class="card-value">{{ summary.movies | cl_int }}</div>
+        <div class="card-note">{{ summary.movies_total_gb | cl_float }} GB catalogados</div>
+    </article>
+
+    <article class="card">
+        <div class="card-label">Series</div>
+        <div class="card-value">{{ summary.series | cl_int }}</div>
+        <div class="card-note">{{ summary.episodes | cl_int }} episodios</div>
+    </article>
+
+    <article class="card highlight">
+        <div class="card-label">Candidatas a compactar</div>
+        <div class="card-value">{{ summary.compression_candidates | cl_int }}</div>
+        <div class="card-note">{{ summary.compression_total_gb | cl_float }} GB bajo revisión</div>
+    </article>
+
+    <article class="card">
+        <div class="card-label">Episodios faltantes</div>
+        <div class="card-value">{{ summary.missing_episodes | cl_int }}</div>
+        <div class="card-note">según radar TVmaze</div>
+    </article>
+</section>
+
+<section class="grid-two">
+    <article class="panel">
+        <h2>Películas por volumen</h2>
+
+        {% if movie_by_volume %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Volumen</th>
+                        <th class="number">Películas</th>
+                        <th class="number">GB</th>
+                        <th class="number">Promedio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in movie_by_volume %}
+                    <tr>
+                        <td>{{ row.volumen or "Sin volumen" }}</td>
+                        <td class="number">{{ row.peliculas | cl_int }}</td>
+                        <td class="number">{{ row.tamano_total_gb | cl_float }}</td>
+                        <td class="number">{{ row.tamano_promedio_gb | cl_float }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">No hay resumen por volumen.</p>
+        {% endif %}
+    </article>
+
+    <article class="panel">
+        <h2>Radar de series</h2>
+
+        {% if series_status %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Estado</th>
+                        <th class="number">Series</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in series_status %}
+                    <tr>
+                        <td>{{ row.estado_control or "Sin estado" }}</td>
+                        <td class="number">{{ row.series | cl_int }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">No hay resumen de series.</p>
+        {% endif %}
+    </article>
+</section>
+
+<section class="panel system-panel">
+    <h2>Estado del sistema</h2>
+    <div class="system-status">
+        <div>
+            <span class="status-dot"></span>
+            Operativo
+        </div>
+        <div class="muted">Base local: {{ db_path }}</div>
+    </div>
+</section>
+{% endblock %}

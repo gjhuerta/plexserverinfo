@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}taboplex · compactación{% endblock %}
+
+{% block content %}
+<section class="hero compact">
+    <div>
+        <h1>Candidatas a compactar</h1>
+        <p>Películas grandes que podrían liberar espacio y mejorar reproducción por Apple TV/WiFi.</p>
+        <div class="hero-meta">
+            Lista de trabajo para el ritual de compactación de fin de semana.
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <form class="filters" method="get" action="{{ url_for('compactacion') }}">
+        <label>
+            Tamaño mínimo GB
+            <input type="number" step="0.1" name="min_size" value="{{ filters.min_size }}">
+        </label>
+
+        <label>
+            Prioridad
+            <select name="priority">
+                <option value="">Todas</option>
+                {% for item in priorities %}
+                    <option value="{{ item.value }}" {% if filters.priority == item.value %}selected{% endif %}>
+                        {{ item.value }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            Volumen
+            <select name="volume">
+                <option value="">Todos</option>
+                {% for item in volumes %}
+                    <option value="{{ item.value }}" {% if filters.volume == item.value %}selected{% endif %}>
+                        {{ item.value }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            Resolución
+            <select name="resolution">
+                <option value="">Todas</option>
+                {% for item in resolutions %}
+                    <option value="{{ item.value }}" {% if filters.resolution == item.value %}selected{% endif %}>
+                        {{ item.value }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label class="checkbox">
+            <input type="checkbox" name="only_unwatched" value="1" {% if filters.only_unwatched == "1" %}checked{% endif %}>
+            Solo no vistas
+        </label>
+
+        <button type="submit">Aplicar filtros</button>
+    </form>
+</section>
+
+<section class="cards compact-summary">
+    <article class="card highlight">
+        <div class="card-label">Películas filtradas</div>
+        <div class="card-value">{{ rows|length | cl_int }}</div>
+        <div class="card-note">candidatas visibles</div>
+    </article>
+
+    <article class="card">
+        <div class="card-label">Tamaño total</div>
+        <div class="card-value">{{ total_gb | cl_float }}</div>
+        <div class="card-note">GB en el filtro actual</div>
+    </article>
+
+    {% for item in priority_summary %}
+        <article class="card compact-priority-card">
+            <div class="card-label">{{ item.prioridad_compactacion or "Sin prioridad" }}</div>
+            <div class="card-value compact-card-value">{{ item.peliculas | cl_int }}</div>
+            <div class="card-note">{{ item.tamano_total_gb | cl_float }} GB</div>
+        </article>
+    {% endfor %}
+</section>
+
+<section class="grid-two compact-overview">
+    <article class="panel">
+        <h2>Resumen por volumen</h2>
+
+        {% if volume_summary %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Volumen</th>
+                        <th class="number">Películas</th>
+                        <th class="number">GB</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in volume_summary %}
+                    <tr>
+                        <td>{{ row.volumen or "Sin volumen" }}</td>
+                        <td class="number">{{ row.peliculas | cl_int }}</td>
+                        <td class="number">{{ row.tamano_total_gb | cl_float }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">No hay datos por volumen para los filtros actuales.</p>
+        {% endif %}
+    </article>
+
+    <article class="panel">
+        <h2>Resumen por resolución</h2>
+
+        {% if resolution_summary %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Resolución</th>
+                        <th class="number">Películas</th>
+                        <th class="number">GB</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in resolution_summary %}
+                    <tr>
+                        <td>{{ row.resolucion or "Sin resolución" }}</td>
+                        <td class="number">{{ row.peliculas | cl_int }}</td>
+                        <td class="number">{{ row.tamano_total_gb | cl_float }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">No hay datos por resolución para los filtros actuales.</p>
+        {% endif %}
+    </article>
+</section>
+
+<section class="panel">
+    <div class="section-header">
+        <div>
+            <h2>Lista de trabajo</h2>
+            <p class="muted">Ordenada por prioridad y tamaño. Ideal para elegir la tanda de compactación.</p>
+        </div>
+        <div class="section-pill">
+            {{ rows|length | cl_int }} películas · {{ total_gb | cl_float }} GB
+        </div>
+    </div>
+
+    {% if rows %}
+        <div class="table-wrapper">
+            <table class="wide compact-table">
+                <thead>
+                    <tr>
+                        <th>Prioridad</th>
+                        <th>Título</th>
+                        <th>Año</th>
+                        <th class="number">GB</th>
+                        <th>Volumen</th>
+                        <th>Resolución</th>
+                        <th>Video</th>
+                        <th>Audio</th>
+                        <th>Contenedor</th>
+                        <th>Visto</th>
+                        <th>Motivo</th>
+                        <th>Archivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>
+                            <span class="badge badge-{{ (row.prioridad_compactacion or 'na').lower().replace(' ', '-') }}">
+                                {{ row.prioridad_compactacion }}
+                            </span>
+                        </td>
+                        <td class="title-cell">{{ row.titulo }}</td>
+                        <td>{{ row.ano }}</td>
+                        <td class="number strong-number">{{ row.tamano_gb | cl_float }}</td>
+                        <td>{{ row.volumen }}</td>
+                        <td>{{ row.resolucion }}</td>
+                        <td>{{ row.codec_video }}</td>
+                        <td>{{ row.codec_audio }}</td>
+                        <td>{{ row.contenedor }}</td>
+                        <td>{{ row.visto }}</td>
+                        <td>{{ row.motivo_compactacion }}</td>
+                        <td class="path-cell" title="{{ row.archivo }}">{{ row.nombre_archivo }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="empty">No hay películas que cumplan los filtros actuales.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -13,7 +13,7 @@ import pandas as pd
 # Versión
 # ------------------------------------------------------------
 
-IMPORTER_VERSION = "v1.0 Excel to SQLite"
+IMPORTER_VERSION = "v1.1 Excel to SQLite + Views"
 
 
 # ------------------------------------------------------------
@@ -150,70 +150,124 @@ def execute_sql(conn: sqlite3.Connection, sql: str) -> None:
 
 
 # ------------------------------------------------------------
-# Tablas derivadas
+# Compatibilidad / limpieza de objetos anteriores
 # ------------------------------------------------------------
 
-def create_movie_compression_candidates(conn: sqlite3.Connection) -> None:
+def drop_legacy_objects(conn: sqlite3.Connection) -> None:
     """
-    Crea tabla derivada para la futura vista web:
-    /compactacion
+    Limpia objetos antiguos para evitar confusión.
 
-    Reglas iniciales:
-    - tamaño mayor o igual a 2.5 GB
-    - 4K / 2K quedan como revisión especial
-    - >6 GB prioridad alta
-    - 4-6 GB prioridad media
-    - 2.5-4 GB prioridad baja
+    Antes usábamos movie_compression_candidates como tabla física
+    prefiltrada con tamaño >= 2.5 GB. Ahora usamos una vista dinámica
+    basada en todas las películas.
     """
 
     sql = """
     DROP TABLE IF EXISTS movie_compression_candidates;
+    DROP VIEW IF EXISTS movie_compression_candidates;
 
-    CREATE TABLE movie_compression_candidates AS
+    DROP VIEW IF EXISTS v_movie_compression_analysis;
+
+    DROP TABLE IF EXISTS movie_summary_by_volume;
+    DROP TABLE IF EXISTS movie_summary_by_resolution;
+    DROP TABLE IF EXISTS series_status_summary;
+    """
+
+    execute_sql(conn, sql)
+
+
+# ------------------------------------------------------------
+# Vistas y tablas derivadas
+# ------------------------------------------------------------
+
+def create_movie_compression_view(conn: sqlite3.Connection) -> None:
+    """
+    Crea una vista dinámica para compactación.
+
+    La vista NO filtra por 2.5 GB.
+    Deja todas las películas con tamaño conocido, y la web decide
+    el tamaño mínimo a mostrar: 2.0, 2.5, 3.0, 4.0, etc.
+    """
+
+    sql = """
+    DROP VIEW IF EXISTS v_movie_compression_analysis;
+
+    CREATE VIEW v_movie_compression_analysis AS
     SELECT
         titulo,
+        titulo_original,
         ano,
-        tamano_gb,
-        volumen,
+        tipo_identificador_preferente,
+        identificador_preferente,
+        imdb_id,
+        tmdb_id,
+        tvdb_id,
+        plex_ratingkey,
+        plex_guid_principal,
+        guids_externos,
+        fecha_estreno_original,
+        duracion_min,
+        visto,
+        cantidad_vistas,
+        ultima_vista,
+        fecha_agregado_plex,
+        fecha_actualizado_plex,
+        clasificacion_contenido,
+        studio,
+        rating_plex,
+        audience_rating_plex,
+        user_rating_plex,
+        generos,
+        directores,
+        escritores,
+        colecciones,
+        paises,
+        tagline,
+        resumen_plex,
         resolucion,
         codec_video,
         codec_audio,
         contenedor,
         bitrate,
-        duracion_min,
-        visto,
-        cantidad_vistas,
-        fecha_agregado_plex,
+        ancho_video,
+        alto_video,
+        aspect_ratio,
+        canales_audio,
+        cantidad_media_items,
+        cantidad_partes,
+        tamano_bytes,
+        tamano_mb,
+        tamano_gb,
+        volumen,
         nombre_archivo,
         archivo,
-        imdb_id,
-        tmdb_id,
+
         CASE
             WHEN resolucion IN ('4K', '2K') THEN 'Revision especial'
             WHEN tamano_gb >= 6 THEN 'Alta'
             WHEN tamano_gb >= 4 THEN 'Media'
             WHEN tamano_gb >= 2.5 THEN 'Baja'
-            ELSE 'No aplica'
+            ELSE 'Bajo umbral'
         END AS prioridad_compactacion,
+
         CASE
-            WHEN resolucion IN ('4K', '2K') THEN 'Resolucion alta: revisar antes de compactar'
+            WHEN resolucion IN ('4K', '2K') THEN 'Resolución alta: revisar antes de compactar'
             WHEN tamano_gb >= 6 THEN 'Archivo muy pesado'
             WHEN tamano_gb >= 4 THEN 'Archivo pesado'
             WHEN tamano_gb >= 2.5 THEN 'Sobre umbral recomendado'
-            ELSE 'No aplica'
-        END AS motivo_compactacion
-    FROM movies
-    WHERE tamano_gb IS NOT NULL
-      AND tamano_gb >= 2.5
-    ORDER BY
+            ELSE 'Bajo umbral recomendado'
+        END AS motivo_compactacion,
+
         CASE
-            WHEN resolucion IN ('4K', '2K') THEN 1
-            WHEN tamano_gb >= 6 THEN 2
-            WHEN tamano_gb >= 4 THEN 3
-            WHEN tamano_gb >= 2.5 THEN 4
-            ELSE 9
-        END,
-        tamano_gb DESC;
+            WHEN resolucion IN ('4K', '2K') THEN 'Revisión especial por resolución'
+            WHEN tamano_gb >= 6 THEN 'Alto'
+            WHEN tamano_gb >= 4 THEN 'Medio'
+            WHEN tamano_gb >= 2.5 THEN 'Bajo'
+            ELSE 'Normal'
+        END AS riesgo_appletv_wifi
+
+    FROM movies
+    WHERE tamano_gb IS NOT NULL;
     """
 
     execute_sql(conn, sql)
@@ -286,6 +340,27 @@ def create_import_run_table(conn: sqlite3.Connection, source_files: dict[str, st
     write_table(conn, "import_run", df)
 
 
+def create_indexes(conn: sqlite3.Connection) -> None:
+    """
+    Índices simples para que la web responda más rápido.
+    SQLite ignora índices que ya existan si usamos IF NOT EXISTS.
+    """
+
+    sql = """
+    CREATE INDEX IF NOT EXISTS idx_movies_titulo ON movies(titulo);
+    CREATE INDEX IF NOT EXISTS idx_movies_tamano_gb ON movies(tamano_gb);
+    CREATE INDEX IF NOT EXISTS idx_movies_volumen ON movies(volumen);
+    CREATE INDEX IF NOT EXISTS idx_movies_resolucion ON movies(resolucion);
+    CREATE INDEX IF NOT EXISTS idx_movies_visto ON movies(visto);
+
+    CREATE INDEX IF NOT EXISTS idx_series_serie ON series(serie);
+    CREATE INDEX IF NOT EXISTS idx_episodes_serie ON episodes(serie);
+    CREATE INDEX IF NOT EXISTS idx_series_check_estado ON series_check(estado_control);
+    """
+
+    execute_sql(conn, sql)
+
+
 # ------------------------------------------------------------
 # Main
 # ------------------------------------------------------------
@@ -313,6 +388,8 @@ def main() -> None:
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA foreign_keys=ON;")
+
+        drop_legacy_objects(conn)
 
         # Series export
         series_df = load_excel_sheet(series_export_file, "Series")
@@ -344,8 +421,9 @@ def main() -> None:
             write_table(conn, "missing_episodes", pd.DataFrame())
             write_table(conn, "manual_review", pd.DataFrame())
 
-        create_movie_compression_candidates(conn)
+        create_movie_compression_view(conn)
         create_summary_tables(conn)
+        create_indexes(conn)
 
         create_import_run_table(
             conn,
@@ -361,7 +439,8 @@ def main() -> None:
     print("")
     print("=" * 70)
     print("Importación finalizada correctamente.")
-    print(f"SQLite generado: {DB_PATH}")
+    print(f"SQLite actualizado: {DB_PATH}")
+    print("Vista creada: v_movie_compression_analysis")
     print("=" * 70)
 
 
