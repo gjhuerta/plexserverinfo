@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if movie %}
+        taboplex · {{ movie.titulo }}
+    {% else %}
+        taboplex · película no encontrada
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+{% if not movie %}
+    <section class="hero">
+        <h1>Película no encontrada</h1>
+        <p>No encontré una película con rating key {{ rating_key }}.</p>
+    </section>
+{% else %}
+    <section
+        class="movie-detail-hero"
+        style="background-image: linear-gradient(90deg, rgba(20,20,20,0.92), rgba(20,20,20,0.72), rgba(20,20,20,0.30)), url('{{ url_for('movie_art', rating_key=movie.plex_ratingkey) }}');"
+    >
+        <div class="movie-detail-layout">
+            <div class="movie-detail-poster-wrap">
+                <img
+                    class="movie-detail-poster"
+                    src="{{ url_for('movie_poster', rating_key=movie.plex_ratingkey) }}"
+                    alt="{{ movie.titulo }}"
+                >
+            </div>
+
+            <div class="movie-detail-content">
+                <a class="back-link" href="{{ url_for('peliculas') }}">← Volver a películas</a>
+
+                <div class="detail-badges">
+                    <span class="watch-badge-static {% if movie.visto == 'Sí' %}watched{% else %}unwatched{% endif %}">
+                        {% if movie.visto == "Sí" %}Vista{% else %}No vista{% endif %}
+                    </span>
+                    <span class="detail-chip">{{ movie.resolucion or "Sin resolución" }}</span>
+                    <span class="detail-chip">{{ movie.tamano_gb | cl_float }} GB</span>
+                </div>
+
+                <h1>{{ movie.titulo }}</h1>
+
+                <div class="detail-meta-main">
+                    {{ movie.ano | clean_year }}
+                    {% if movie.duracion_min %} · {{ movie.duracion_min | cl_float(0) }} min{% endif %}
+                    {% if movie.clasificacion_contenido %} · {{ movie.clasificacion_contenido }}{% endif %}
+                </div>
+
+                {% if movie.tagline %}
+                    <div class="tagline">{{ movie.tagline }}</div>
+                {% endif %}
+
+                {% if movie.resumen_plex %}
+                    <p class="movie-summary">{{ movie.resumen_plex }}</p>
+                {% else %}
+                    <p class="movie-summary muted-on-dark">Sin resumen disponible en Plex.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="detail-grid">
+        <article class="panel">
+            <h2>Información</h2>
+            <dl class="detail-list">
+                <dt>Título original</dt>
+                <dd>{{ movie.titulo_original or "—" }}</dd>
+
+                <dt>Géneros</dt>
+                <dd>{{ movie.generos or "—" }}</dd>
+
+                <dt>Directores</dt>
+                <dd>{{ movie.directores or "—" }}</dd>
+
+                <dt>Países</dt>
+                <dd>{{ movie.paises or "—" }}</dd>
+
+                <dt>Studio</dt>
+                <dd>{{ movie.studio or "—" }}</dd>
+
+                <dt>Fecha estreno</dt>
+                <dd>{{ movie.fecha_estreno_original or "—" }}</dd>
+
+                <dt>Fecha agregado Plex</dt>
+                <dd>{{ movie.fecha_agregado_plex or "—" }}</dd>
+            </dl>
+        </article>
+
+        <article class="panel">
+            <h2>Archivo y calidad</h2>
+            <dl class="detail-list">
+                <dt>Volumen</dt>
+                <dd>{{ movie.volumen or "—" }}</dd>
+
+                <dt>Resolución</dt>
+                <dd>{{ movie.resolucion or "—" }}</dd>
+
+                <dt>Video</dt>
+                <dd>{{ movie.codec_video or "—" }}</dd>
+
+                <dt>Audio</dt>
+                <dd>{{ movie.codec_audio or "—" }}</dd>
+
+                <dt>Contenedor</dt>
+                <dd>{{ movie.contenedor or "—" }}</dd>
+
+                <dt>Bitrate</dt>
+                <dd>{{ movie.bitrate or "—" }}</dd>
+
+                <dt>Tamaño</dt>
+                <dd>{{ movie.tamano_gb | cl_float }} GB</dd>
+            </dl>
+        </article>
+    </section>
+
+    <section class="panel">
+        <h2>Ruta del archivo</h2>
+        <p class="file-path-detail">{{ movie.archivo or "Sin ruta registrada" }}</p>
+    </section>
+
+    <section class="panel">
+        <h2>Identificadores</h2>
+        <div class="id-grid">
+            <div>
+                <span>IMDb</span>
+                <strong>{{ movie.imdb_id or "—" }}</strong>
+            </div>
+            <div>
+                <span>TMDb</span>
+                <strong>{{ movie.tmdb_id or "—" }}</strong>
+            </div>
+            <div>
+                <span>TVDb</span>
+                <strong>{{ movie.tvdb_id or "—" }}</strong>
+            </div>
+            <div>
+                <span>Plex RatingKey</span>
+                <strong>{{ movie.plex_ratingkey or "—" }}</strong>
+            </div>
+        </div>
+    </section>
+{% endif %}
+{% endblock %}

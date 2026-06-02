@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}taboplex · películas{% endblock %}
+
+{% block content %}
+<section class="hero compact">
+    <div>
+        <h1>Películas</h1>
+        <p>Catálogo visual de tu biblioteca Plex, usando posters directamente desde Plex.</p>
+        <div class="hero-meta">
+            {{ pagination.total_movies | cl_int }} películas encontradas · página {{ pagination.page | cl_int }} de {{ pagination.total_pages | cl_int }}
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <form class="movie-filters" method="get" action="{{ url_for('peliculas') }}">
+        <label class="movie-search">
+            Buscar
+            <input type="text" name="q" value="{{ filters.q }}" placeholder="Título de película">
+        </label>
+
+        <label>
+            Volumen
+            <select name="volume">
+                <option value="">Todos</option>
+                {% for item in volumes %}
+                    <option value="{{ item.value }}" {% if filters.volume == item.value %}selected{% endif %}>
+                        {{ item.value }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            Resolución
+            <select name="resolution">
+                <option value="">Todas</option>
+                {% for item in resolutions %}
+                    <option value="{{ item.value }}" {% if filters.resolution == item.value %}selected{% endif %}>
+                        {{ item.value }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label>
+            Estado
+            <select name="watched">
+                <option value="">Todas</option>
+                <option value="Sí" {% if filters.watched == "Sí" %}selected{% endif %}>Vistas</option>
+                <option value="No" {% if filters.watched == "No" %}selected{% endif %}>No vistas</option>
+            </select>
+        </label>
+
+        <label>
+            Por página
+            <select name="page_size">
+                <option value="24" {% if filters.page_size == 24 %}selected{% endif %}>24</option>
+                <option value="60" {% if filters.page_size == 60 %}selected{% endif %}>60</option>
+                <option value="96" {% if filters.page_size == 96 %}selected{% endif %}>96</option>
+                <option value="120" {% if filters.page_size == 120 %}selected{% endif %}>120</option>
+            </select>
+        </label>
+
+        <button type="submit">Aplicar</button>
+    </form>
+</section>
+
+<section class="panel movie-toolbar">
+    <div>
+        <strong>{{ pagination.total_movies | cl_int }}</strong> películas en el filtro actual
+    </div>
+
+    <div class="pager">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('peliculas', q=filters.q, volume=filters.volume, resolution=filters.resolution, watched=filters.watched, page_size=filters.page_size, page=pagination.prev_page) }}">
+                ← Anterior
+            </a>
+        {% else %}
+            <span class="disabled">← Anterior</span>
+        {% endif %}
+
+        <span>Página {{ pagination.page | cl_int }} / {{ pagination.total_pages | cl_int }}</span>
+
+        {% if pagination.has_next %}
+            <a href="{{ url_for('peliculas', q=filters.q, volume=filters.volume, resolution=filters.resolution, watched=filters.watched, page_size=filters.page_size, page=pagination.next_page) }}">
+                Siguiente →
+            </a>
+        {% else %}
+            <span class="disabled">Siguiente →</span>
+        {% endif %}
+    </div>
+</section>
+
+{% if rows %}
+    <section class="movie-grid">
+        {% for row in rows %}
+            <article class="movie-card">
+                <a class="movie-card-link" href="{{ url_for('pelicula_detalle', rating_key=row.plex_ratingkey) }}">
+                    <div class="poster-wrap">
+                        <img
+                            class="movie-poster"
+                            src="{{ url_for('movie_poster', rating_key=row.plex_ratingkey) }}"
+                            alt="{{ row.titulo }}"
+                            loading="lazy"
+                        >
+                        <div class="watch-badge {% if row.visto == 'Sí' %}watched{% else %}unwatched{% endif %}">
+                            {% if row.visto == "Sí" %}
+                                Vista
+                            {% else %}
+                                No vista
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="movie-info">
+                        <div class="movie-title" title="{{ row.titulo }}">{{ row.titulo }}</div>
+                        <div class="movie-meta">
+                            {{ row.ano | clean_year }} · {{ row.resolucion or "s/r" }} · {{ row.tamano_gb | cl_float }} GB
+                        </div>
+                        <div class="movie-submeta">
+                            {{ row.volumen or "Sin volumen" }}
+                        </div>
+                    </div>
+                </a>
+            </article>
+        {% endfor %}
+    </section>
+{% else %}
+    <section class="panel">
+        <p class="empty">No hay películas que cumplan los filtros actuales.</p>
+    </section>
+{% endif %}
+
+<section class="panel movie-toolbar bottom">
+    <div>
+        Mostrando {{ rows|length | cl_int }} películas
+    </div>
+
+    <div class="pager">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('peliculas', q=filters.q, volume=filters.volume, resolution=filters.resolution, watched=filters.watched, page_size=filters.page_size, page=pagination.prev_page) }}">
+                ← Anterior
+            </a>
+        {% else %}
+            <span class="disabled">← Anterior</span>
+        {% endif %}
+
+        <span>Página {{ pagination.page | cl_int }} / {{ pagination.total_pages | cl_int }}</span>
+
+        {% if pagination.has_next %}
+            <a href="{{ url_for('peliculas', q=filters.q, volume=filters.volume, resolution=filters.resolution, watched=filters.watched, page_size=filters.page_size, page=pagination.next_page) }}">
+                Siguiente →
+            </a>
+        {% else %}
+            <span class="disabled">Siguiente →</span>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

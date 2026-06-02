@@ -16,7 +16,7 @@ from plexapi.server import PlexServer
 # Versión del exportador
 # ------------------------------------------------------------
 
-EXPORTER_VERSION = "v1.1 Movies Export + Progress"
+EXPORTER_VERSION = "v1.2 Movies Export + Progress + Posters"
 
 
 # ------------------------------------------------------------
@@ -342,6 +342,40 @@ def get_external_guids(item: Any) -> dict[str, Any]:
 
 
 # ------------------------------------------------------------
+# Metadata visual / posters
+# ------------------------------------------------------------
+
+def get_movie_image_info(movie: Any) -> dict[str, Any]:
+    """
+    Obtiene rutas internas de Plex para poster y arte de fondo.
+
+    Estas rutas NO incluyen token y NO son URLs finales.
+    La web las usará después a través de Flask como proxy seguro.
+    """
+
+    thumb = safe_attr(movie, "thumb")
+    art = safe_attr(movie, "art")
+    theme = safe_attr(movie, "theme")
+
+    rating_key = safe_attr(movie, "ratingKey")
+
+    fallback_thumb = None
+    fallback_art = None
+
+    if rating_key:
+        fallback_thumb = f"/library/metadata/{rating_key}/thumb"
+        fallback_art = f"/library/metadata/{rating_key}/art"
+
+    return {
+        "Plex Thumb": thumb,
+        "Plex Art": art,
+        "Plex Theme": theme,
+        "Plex Thumb Fallback": fallback_thumb,
+        "Plex Art Fallback": fallback_art,
+    }
+
+
+# ------------------------------------------------------------
 # Metadata técnica de películas
 # ------------------------------------------------------------
 
@@ -592,6 +626,7 @@ def export_movies_from_libraries(
 
             external_guids = get_external_guids(movie)
             file_info = get_movie_file_info(movie)
+            image_info = get_movie_image_info(movie)
 
             current_percent = calculate_percent(movie_index, total_movies)
             elapsed = format_seconds((datetime.now() - library_start_time).total_seconds())
@@ -619,6 +654,11 @@ def export_movies_from_libraries(
                     "Plex RatingKey": rating_key,
                     "Plex GUID Principal": external_guids["Plex GUID Principal"],
                     "Guids Externos": external_guids["Guids Externos"],
+                    "Plex Thumb": image_info["Plex Thumb"],
+                    "Plex Art": image_info["Plex Art"],
+                    "Plex Theme": image_info["Plex Theme"],
+                    "Plex Thumb Fallback": image_info["Plex Thumb Fallback"],
+                    "Plex Art Fallback": image_info["Plex Art Fallback"],
                     "Fecha Estreno Original": originally_available_at,
                     "Duracion Min": duration_min,
                     "Visto": "Sí" if view_count > 0 else "No",
