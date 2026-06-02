@@ -7,7 +7,7 @@ from typing import Any
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, Response, render_template, request
+from flask import Flask, Response, render_template, request, url_for
 
 
 # ------------------------------------------------------------
@@ -66,10 +66,6 @@ def cl_float(value: Any, decimals: int = 2) -> str:
 
 @app.template_filter("clean_year")
 def clean_year(value: Any) -> str:
-    """
-    Limpia años que vienen desde Excel/SQLite como 2013.0
-    y los muestra como 2013.
-    """
     if value is None:
         return "s/a"
 
@@ -259,6 +255,15 @@ def get_movie_by_rating_key(rating_key: str) -> sqlite3.Row | None:
         """,
         (str(rating_key),),
     )
+
+
+def current_return_url() -> str:
+    full_path = request.full_path or request.path
+
+    if full_path.endswith("?"):
+        full_path = full_path[:-1]
+
+    return full_path
 
 
 # ------------------------------------------------------------
@@ -490,24 +495,28 @@ def peliculas():
         volumes=volumes,
         resolutions=resolutions,
         pagination=pagination,
+        return_to=current_return_url(),
     )
 
 
 @app.route("/peliculas/<rating_key>")
 def pelicula_detalle(rating_key: str):
     movie = get_movie_by_rating_key(rating_key)
+    return_to = request.args.get("return_to") or url_for("peliculas")
 
     if not movie:
         return render_template(
             "pelicula_detalle.html",
             movie=None,
             rating_key=rating_key,
+            return_to=return_to,
         ), 404
 
     return render_template(
         "pelicula_detalle.html",
         movie=movie,
         rating_key=rating_key,
+        return_to=return_to,
     )
 
 

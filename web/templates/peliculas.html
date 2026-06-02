@@ -97,7 +97,10 @@
     <section class="movie-grid">
         {% for row in rows %}
             <article class="movie-card">
-                <a class="movie-card-link" href="{{ url_for('pelicula_detalle', rating_key=row.plex_ratingkey) }}">
+                <a
+                    class="movie-card-link"
+                    href="{{ url_for('pelicula_detalle', rating_key=row.plex_ratingkey, return_to=return_to) }}"
+                >
                     <div class="poster-wrap">
                         <img
                             class="movie-poster"
