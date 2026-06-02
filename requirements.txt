@@ -3,3 +3,5 @@ python-dotenv
 pandas
 openpyxl
 requests
+flask
+pandas-stubs
