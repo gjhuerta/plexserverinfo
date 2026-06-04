@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}taboplex · actualización de series{% endblock %}
+
+{% block content %}
+<section class="hero compact">
+    <div>
+        <h1>Actualización de series</h1>
+        <p>Series cuyo último capítulo salió dentro de la ventana definida y que podrían requerir actualización.</p>
+        <div class="hero-meta">
+            Ventana actual: {{ filters.max_days | cl_int }} días ·
+            {% if generated_at %}
+                Generado: {{ generated_at }}
+            {% else %}
+                Radar no generado
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <form class="series-update-filters" method="get" action="{{ url_for('actualizacion_series') }}">
+        <label class="series-search">
+            Buscar serie
+            <input type="text" name="q" value="{{ filters.q }}" placeholder="Nombre de la serie">
+        </label>
+
+        <label>
+            Ventana días
+            <input type="number" name="max_days" min="1" max="2000" value="{{ filters.max_days }}">
+        </label>
+
+        <label>
+            Acción
+            <select name="action">
+                <option value="">Todas</option>
+                {% for item in actions %}
+                    <option value="{{ item.value }}" {% if filters.action == item.value %}selected{% endif %}>
+                        {{ item.value }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label class="checkbox">
+            <input type="checkbox" name="only_missing" value="1" {% if filters.only_missing == "1" %}checked{% endif %}>
+            Solo con faltantes
+        </label>
+
+        <label class="checkbox">
+            <input type="checkbox" name="show_ignored" value="1" {% if filters.show_ignored == "1" %}checked{% endif %}>
+            Mostrar ignoradas
+        </label>
+
+        <button type="submit">Aplicar filtros</button>
+    </form>
+</section>
+
+<section class="cards compact-summary">
+    <article class="card highlight">
+        <div class="card-label">Series visibles</div>
+        <div class="card-value">{{ rows|length | cl_int }}</div>
+        <div class="card-note">en el filtro actual</div>
+    </article>
+
+    <article class="card">
+        <div class="card-label">Episodios faltantes</div>
+        <div class="card-value">{{ total_missing | cl_int }}</div>
+        <div class="card-note">suma de la lista visible</div>
+    </article>
+
+    {% for item in action_summary %}
+        <article class="card series-action-card">
+            <div class="card-label">{{ item.accion_sugerida or "Sin acción" }}</div>
+            <div class="card-value compact-card-value">{{ item.series | cl_int }}</div>
+            <div class="card-note">{{ item.episodios_faltantes | cl_int }} episodios faltantes</div>
+        </article>
+    {% endfor %}
+</section>
+
+<section class="panel">
+    <div class="section-header">
+        <div>
+            <h2>Lista de actualización</h2>
+            <p class="muted">
+                Haz clic en una serie para ver el IMDb ID, episodios faltantes y cambiar su seguimiento.
+            </p>
+        </div>
+
+        <div class="section-pill">
+            {{ rows|length | cl_int }} series · {{ total_missing | cl_int }} episodios
+        </div>
+    </div>
+
+    {% if rows %}
+        <div class="table-wrapper">
+            <table class="wide series-update-table">
+                <thead>
+                    <tr>
+                        <th>Acción</th>
+                        <th>Serie</th>
+                        <th>Seguimiento</th>
+                        <th class="number">Faltantes</th>
+                        <th>Último TVmaze</th>
+                        <th class="number">Días</th>
+                        <th>Último Plex</th>
+                        <th class="number">Días Plex</th>
+                        <th>Estado</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>
+                            <span class="series-action-badge badge-action-{{ (row.accion_sugerida or 'na').lower().replace(' ', '-') }}">
+                                {{ row.accion_sugerida }}
+                            </span>
+                        </td>
+
+                        <td class="title-cell">
+                            <a
+                                class="series-link"
+                                href="{{ url_for('actualizacion_serie_detalle', serie=row.serie, return_to=return_to) }}"
+                            >
+                                {{ row.serie }}
+                            </a>
+                        </td>
+
+                        <td>
+                            {% if row.tracking_status == "Ignorada" %}
+                                <span class="series-action-badge badge-action-fuera-de-ventana">Ignorada</span>
+                            {% else %}
+                                <span class="series-action-badge badge-action-al-dia-en-ventana">Activa</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="number strong-number">
+                            {{ row.episodios_faltantes | cl_int }}
+                        </td>
+
+                        <td>
+                            <div>{{ row.ultimo_episodio_tvmaze_fecha or "—" }}</div>
+                            {% if row.ultimo_episodio_tvmaze %}
+                                <div class="small-muted">{{ row.ultimo_episodio_tvmaze }}</div>
+                            {% endif %}
+                        </td>
+
+                        <td class="number">
+                            {% if row.dias_desde_ultimo_tvmaze is not none %}
+                                {{ row.dias_desde_ultimo_tvmaze | cl_int }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div>{{ row.ultimo_episodio_plex_fecha or "—" }}</div>
+                            {% if row.ultimo_episodio_plex %}
+                                <div class="small-muted">{{ row.ultimo_episodio_plex }}</div>
+                            {% endif %}
+                        </td>
+
+                        <td class="number">
+                            {% if row.dias_desde_ultimo_plex is not none %}
+                                {{ row.dias_desde_ultimo_plex | cl_int }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+
+                        <td>{{ row.estado_control or "—" }}</td>
+                        <td>{{ row.motivo_accion or "—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="empty">
+            No hay series que cumplan los filtros actuales. Si esperabas resultados, ejecuta primero
+            <code>/src/build_series_update_radar.py</code>.
+        </p>
+    {% endif %}
+</section>
+
+<section class="panel system-panel">
+    <h2>Base del radar</h2>
+    <div class="system-status">
+        <div>
+            <span class="status-dot"></span>
+            {% if builder_version %}
+                {{ builder_version }}
+            {% else %}
+                Radar pendiente
+            {% endif %}
+        </div>
+        <div class="muted">
+            Fuente: v_series_update_radar · Preferencias: series_tracking_preferences
+        </div>
+    </div>
+</section>
+{% endblock %}

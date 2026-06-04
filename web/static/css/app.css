@@ -10,6 +10,7 @@
     --warning: #8a5a00;
     --ok: #276749;
     --purple: #44337a;
+    --blue: #2b6cb0;
     --shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
@@ -123,7 +124,8 @@ body {
     background: #fffaf0;
 }
 
-.compact-priority-card {
+.compact-priority-card,
+.series-action-card {
     background: #ffffff;
 }
 
@@ -238,6 +240,12 @@ tr:hover td {
     color: var(--muted);
 }
 
+.small-muted {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 3px;
+}
+
 .system-status {
     display: flex;
     gap: 18px;
@@ -263,7 +271,8 @@ tr:hover td {
 }
 
 .filters label,
-.movie-filters label {
+.movie-filters label,
+.series-update-filters label {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -275,7 +284,9 @@ tr:hover td {
 .filters input,
 .filters select,
 .movie-filters input,
-.movie-filters select {
+.movie-filters select,
+.series-update-filters input,
+.series-update-filters select {
     height: 38px;
     border: 1px solid var(--line);
     border-radius: 10px;
@@ -284,14 +295,16 @@ tr:hover td {
     color: var(--text);
 }
 
-.filters .checkbox {
+.filters .checkbox,
+.series-update-filters .checkbox {
     flex-direction: row;
     align-items: center;
     gap: 8px;
     height: 38px;
 }
 
-.filters .checkbox input {
+.filters .checkbox input,
+.series-update-filters .checkbox input {
     height: auto;
 }
 
@@ -318,11 +331,13 @@ button:hover {
     min-width: 1300px;
 }
 
-.compact-table tbody tr:nth-child(even) td {
+.compact-table tbody tr:nth-child(even) td,
+.series-update-table tbody tr:nth-child(even) td {
     background: #fffdf8;
 }
 
-.compact-table tbody tr:hover td {
+.compact-table tbody tr:hover td,
+.series-update-table tbody tr:hover td {
     background: #fff6df;
 }
 
@@ -365,6 +380,108 @@ button:hover {
 .badge-revision-especial {
     background: #e8e4ff;
     color: var(--purple);
+}
+
+/* ------------------------------------------------------------
+   Actualización de series
+------------------------------------------------------------ */
+
+.series-update-filters {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) 150px 220px 180px auto;
+    gap: 14px;
+    align-items: end;
+}
+
+.series-action-badge {
+    display: inline-flex;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.badge-action-actualizar-ahora {
+    background: #fde2e2;
+    color: var(--danger);
+}
+
+.badge-action-actualizar-pronto {
+    background: #fff2cc;
+    color: var(--warning);
+}
+
+.badge-action-actualizar-pendiente {
+    background: #e8e4ff;
+    color: var(--purple);
+}
+
+.badge-action-al-día-en-ventana,
+.badge-action-al-dia-en-ventana {
+    background: #e8f5e9;
+    color: var(--ok);
+}
+
+.badge-action-fuera-de-ventana {
+    background: #edf2f7;
+    color: #4a5568;
+}
+
+.badge-action-sin-fecha-tvmaze {
+    background: #e2e8f0;
+    color: #2d3748;
+}
+
+.series-link {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.series-link:hover {
+    color: #8a6a25;
+    text-decoration: underline;
+}
+
+.simple-link {
+    display: inline-flex;
+    margin-bottom: 14px;
+    color: #8a6a25;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.simple-link:hover {
+    text-decoration: underline;
+}
+
+.copy-value-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 8px;
+}
+
+.copy-button {
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: #252525;
+    color: #ffffff;
+    border: 0;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.copy-button:hover {
+    background: #000000;
+}
+
+.series-missing-table {
+    min-width: 900px;
 }
 
 /* ------------------------------------------------------------
@@ -709,7 +826,8 @@ button:hover {
     }
 
     .filters,
-    .movie-filters {
+    .movie-filters,
+    .series-update-filters {
         grid-template-columns: 1fr;
     }
 
@@ -719,6 +837,10 @@ button:hover {
         gap: 12px;
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .nav {
+        flex-wrap: wrap;
     }
 
     .brand-logo {
